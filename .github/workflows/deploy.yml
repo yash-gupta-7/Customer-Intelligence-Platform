@@ -1,0 +1,74 @@
+name: Deploy — Customer Intelligence Platform
+
+on:
+  workflow_run:
+    workflows: ["CI — Customer Intelligence Platform"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to staging via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script: |
+            cd /opt/customer-intelligence-platform
+            git pull origin main
+            docker compose pull api
+            docker compose up -d api
+            docker compose exec -T api curl -f http://localhost:8000/health
+            echo "Staging deployment successful"
+
+  smoke-test-staging:
+    name: Smoke Test Staging
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    steps:
+      - name: Health check staging
+        run: |
+          curl -f ${{ secrets.STAGING_URL }}/health
+          curl -f ${{ secrets.STAGING_URL }}/
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: smoke-test-staging
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to production
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            cd /opt/customer-intelligence-platform
+            git pull origin main
+            docker compose pull api
+            docker compose up -d --no-deps api
+            sleep 10
+            curl -f http://localhost:8000/health
+            echo "Production deployment successful"
+
+      - name: Notify Slack
+        if: always()
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "${{ job.status == 'success' && '✅' || '❌' }} CIP Production Deploy: ${{ job.status }} — <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
