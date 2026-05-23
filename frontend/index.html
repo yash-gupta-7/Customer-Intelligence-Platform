@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Customer Intelligence Platform</title>
+  <meta name="description"
+    content="Production-grade AI platform for customer conversion prediction and complaint intelligence with real-time monitoring." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <!-- ── Animated Background ─────────────────────────────────────── -->
+  <div class="bg-orbs" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <!-- ── Top Navigation ──────────────────────────────────────────── -->
+  <nav class="navbar" role="navigation" aria-label="Main navigation">
+    <div class="nav-brand">
+      <div class="nav-logo" aria-hidden="true">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="8" fill="url(#logoGrad)" />
+          <path d="M8 22L12 14L16 18L20 10L24 16" stroke="white" stroke-width="2.5" stroke-linecap="round"
+            stroke-linejoin="round" />
+          <circle cx="24" cy="16" r="2" fill="white" />
+          <defs>
+            <linearGradient id="logoGrad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#6366f1" />
+              <stop offset="1" stop-color="#8b5cf6" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div>
+        <span class="nav-title">Customer Intelligence Platform</span>
+        <span class="nav-subtitle">ML · RAG · MLOps</span>
+      </div>
+    </div>
+
+    <div class="nav-tabs" role="tablist" aria-label="Dashboard sections">
+      <button class="nav-tab active" role="tab" aria-selected="true" data-tab="intel" id="tab-intel">
+        <span class="tab-icon">⚡</span> Intelligence
+      </button>
+      <button class="nav-tab" role="tab" aria-selected="false" data-tab="ml" id="tab-ml">
+        <span class="tab-icon">🤖</span> ML Service
+      </button>
+      <button class="nav-tab" role="tab" aria-selected="false" data-tab="rag" id="tab-rag">
+        <span class="tab-icon">🔍</span> RAG Service
+      </button>
+      <button class="nav-tab" role="tab" aria-selected="false" data-tab="monitor" id="tab-monitor">
+        <span class="tab-icon">📊</span> Monitoring
+      </button>
+    </div>
+
+    <div class="nav-status">
+      <div class="status-indicator" id="api-status-indicator" aria-live="polite">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-text">Connecting…</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Main Content ─────────────────────────────────────────────── -->
+  <main class="main-content" role="main">
+
+    <!-- ════ TAB: Intelligence ════════════════════════════════════════ -->
+    <section class="tab-panel active" id="panel-intel" role="tabpanel" aria-labelledby="tab-intel">
+
+      <!-- Hero -->
+      <div class="hero-banner">
+        <h1 class="hero-title">Customer Intelligence</h1>
+        <p class="hero-sub">Unified ML conversion prediction + RAG complaint analysis in a single API call</p>
+      </div>
+
+      <div class="intel-layout">
+
+        <!-- Left: Input Form -->
+        <div class="card form-card">
+          <div class="card-header">
+            <div class="card-icon purple">👤</div>
+            <h2 class="card-title">Customer Profile</h2>
+          </div>
+
+          <form id="intel-form" novalidate>
+            <div class="form-grid">
+              <div class="field-group">
+                <label class="field-label" for="age">Age</label>
+                <input class="field-input" type="number" id="age" min="18" max="100" value="35" placeholder="18–100" />
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="credit-score">Credit Score</label>
+                <input class="field-input" type="number" id="credit-score" min="300" max="850" value="720"
+                  placeholder="300–850" />
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="tenure">Tenure (months)</label>
+                <input class="field-input" type="number" id="tenure" min="0" value="36" placeholder="Months" />
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="num-products">Products Held</label>
+                <input class="field-input" type="number" id="num-products" min="1" max="10" value="2" />
+              </div>
+              <div class="field-group full-width">
+                <label class="field-label" for="balance">Account Balance ($)</label>
+                <input class="field-input" type="number" id="balance" value="75000" step="1000" placeholder="USD" />
+              </div>
+              <div class="field-group full-width">
+                <label class="field-label" for="salary">Estimated Salary ($)</label>
+                <input class="field-input" type="number" id="salary" value="65000" step="1000" placeholder="USD" />
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="geography">Geography</label>
+                <select class="field-input field-select" id="geography">
+                  <option value="France">France</option>
+                  <option value="Germany">Germany</option>
+                  <option value="Spain">Spain</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="gender">Gender</label>
+                <select class="field-input field-select" id="gender">
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="has-cc">Has Credit Card</label>
+                <select class="field-input field-select" id="has-cc">
+                  <option value="1">Yes</option>
+                  <option value="0">No</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="is-active">Active Member</label>
+                <select class="field-input field-select" id="is-active">
+                  <option value="1">Yes</option>
+                  <option value="0">No</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="section-divider">Complaint Filters <span class="optional-tag">optional</span></div>
+            <div class="form-grid">
+              <div class="field-group">
+                <label class="field-label" for="product-filter">Product</label>
+                <input class="field-input" type="text" id="product-filter" placeholder="e.g. Credit card" />
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="issue-filter">Issue</label>
+                <input class="field-input" type="text" id="issue-filter" placeholder="e.g. Billing disputes" />
+              </div>
+              <div class="field-group full-width">
+                <label class="field-label" for="date-filter">Complaints After Date</label>
+                <input class="field-input" type="date" id="date-filter" value="2022-01-01" />
+              </div>
+            </div>
+
+            <button class="btn-primary" type="submit" id="analyze-btn">
+              <span class="btn-icon">⚡</span>
+              <span class="btn-text">Analyze Customer</span>
+              <div class="btn-loader" id="btn-loader" hidden></div>
+            </button>
+          </form>
+        </div>
+
+        <!-- Right: Results Panel -->
+        <div class="results-col">
+
+          <!-- Conversion Gauge -->
+          <div class="card gauge-card" id="conversion-card">
+            <div class="card-header">
+              <div class="card-icon blue">🎯</div>
+              <h2 class="card-title">Conversion Probability</h2>
+              <div class="model-badge" id="model-version-badge">—</div>
+            </div>
+
+            <div class="gauge-container" aria-label="Conversion probability gauge">
+              <svg class="gauge-svg" viewBox="0 0 220 140" role="img" aria-describedby="gauge-desc">
+                <defs>
+                  <linearGradient id="gaugeGradLow" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#ef4444" />
+                    <stop offset="100%" stop-color="#f97316" />
+                  </linearGradient>
+                  <linearGradient id="gaugeGradMed" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#f97316" />
+                    <stop offset="100%" stop-color="#eab308" />
+                  </linearGradient>
+                  <linearGradient id="gaugeGradHigh" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#22c55e" />
+                    <stop offset="100%" stop-color="#10b981" />
+                  </linearGradient>
+                  <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                    <feMerge>
+                      <feMergeNode in="coloredBlur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
+                <desc id="gauge-desc">Semicircular gauge showing conversion probability</desc>
+                <!-- Track -->
+                <path d="M 20 120 A 90 90 0 0 1 200 120" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="16"
+                  stroke-linecap="round" />
+                <!-- Fill arc -->
+                <path id="gauge-fill" d="M 20 120 A 90 90 0 0 1 200 120" fill="none" stroke="url(#gaugeGradHigh)"
+                  stroke-width="16" stroke-linecap="round" stroke-dasharray="0 283"
+                  style="transition: stroke-dasharray 1.2s cubic-bezier(0.4,0,0.2,1)" />
+                <!-- Needle -->
+                <line id="gauge-needle" x1="110" y1="120" x2="110" y2="40" stroke="white" stroke-width="2.5"
+                  stroke-linecap="round"
+                  style="transform-origin: 110px 120px; transition: transform 1.2s cubic-bezier(0.4,0,0.2,1)" />
+                <circle cx="110" cy="120" r="5" fill="white" filter="url(#glow)" />
+                <!-- Labels -->
+                <text x="18" y="138" fill="rgba(255,255,255,0.4)" font-size="11" font-family="Inter">0%</text>
+                <text x="192" y="138" fill="rgba(255,255,255,0.4)" font-size="11" font-family="Inter">100%</text>
+                <text x="103" y="138" fill="rgba(255,255,255,0.4)" font-size="11" font-family="Inter">50%</text>
+              </svg>
+
+              <div class="gauge-center">
+                <div class="gauge-value" id="gauge-value">—</div>
+                <div class="gauge-band" id="gauge-band">—</div>
+              </div>
+            </div>
+
+            <div class="ci-row">
+              <div class="ci-item">
+                <span class="ci-label">CI Lower</span>
+                <span class="ci-value" id="ci-lower">—</span>
+              </div>
+              <div class="ci-divider"></div>
+              <div class="ci-item">
+                <span class="ci-label">Processing Time</span>
+                <span class="ci-value" id="proc-time">—</span>
+              </div>
+              <div class="ci-divider"></div>
+              <div class="ci-item">
+                <span class="ci-label">CI Upper</span>
+                <span class="ci-value" id="ci-upper">—</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature Importance -->
+          <div class="card" id="features-card">
+            <div class="card-header">
+              <div class="card-icon green">📊</div>
+              <h2 class="card-title">Feature Importance</h2>
+            </div>
+            <div class="importance-list" id="importance-list">
+              <div class="empty-state">Run analysis to see feature importance</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Complaint Intelligence Panel -->
+      <div class="card complaint-card" id="complaint-card">
+        <div class="card-header">
+          <div class="card-icon amber">🔍</div>
+          <h2 class="card-title">Complaint Intelligence</h2>
+          <div class="confidence-pill" id="rag-confidence-pill">RAG Confidence: —</div>
+        </div>
+
+        <div class="complaint-layout">
+          <!-- Themes -->
+          <div class="themes-col">
+            <h3 class="sub-heading">Complaint Themes</h3>
+            <div class="themes-list" id="themes-list">
+              <div class="empty-state">Run analysis to see themes</div>
+            </div>
+
+            <h3 class="sub-heading mt-lg">Cited Records</h3>
+            <div class="cited-ids" id="cited-ids">
+              <div class="empty-state">No records yet</div>
+            </div>
+
+            <!-- Drift Alert -->
+            <div class="drift-banner" id="drift-banner" hidden>
+              <span class="drift-icon">⚠️</span>
+              <span>Data drift detected — consider retraining</span>
+            </div>
+          </div>
+
+          <!-- RAG Answer -->
+          <div class="answer-col">
+            <h3 class="sub-heading">AI Answer</h3>
+            <div class="answer-box" id="rag-answer">
+              <div class="empty-state">Run analysis to see AI-generated complaint insights</div>
+            </div>
+
+            <!-- Evidence Records -->
+            <h3 class="sub-heading mt-lg">Evidence Records</h3>
+            <div class="evidence-list" id="evidence-list">
+              <div class="empty-state">Evidence will appear here</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ════ TAB: ML Service ═══════════════════════════════════════════ -->
+    <section class="tab-panel" id="panel-ml" role="tabpanel" aria-labelledby="tab-ml" hidden>
+
+      <div class="hero-banner">
+        <h1 class="hero-title">ML Service</h1>
+        <p class="hero-sub">7-stage pipeline: Ingest → Validate → Features → Train → Evaluate → Gate → Serve</p>
+      </div>
+
+      <div class="service-layout">
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon purple">🚀</div>
+            <h2 class="card-title">Train Model</h2>
+          </div>
+          <p class="card-desc">Run the full ML pipeline synchronously. Generates synthetic data if no CSV is present,
+            trains a Gradient Boosting classifier, evaluates, and applies the AUC ≥ 0.75 promotion gate.</p>
+          <button class="btn-primary" id="train-btn">
+            <span class="btn-icon">▶</span> Run Training Pipeline
+            <div class="btn-loader" id="train-loader" hidden></div>
+          </button>
+          <div class="result-box" id="train-result" hidden></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon blue">📈</div>
+            <h2 class="card-title">Model Info</h2>
+          </div>
+          <button class="btn-secondary" id="model-info-btn">
+            <span class="btn-icon">ℹ</span> Get Model Info
+          </button>
+          <div class="result-box" id="model-info-result" hidden></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon amber">⚠️</div>
+            <h2 class="card-title">Drift Detection</h2>
+          </div>
+          <p class="card-desc">Compare current feature distributions against the reference baseline using EvidentlyAI.
+          </p>
+          <button class="btn-secondary" id="drift-btn">
+            <span class="btn-icon">🔬</span> Run Drift Detection
+            <div class="btn-loader" id="drift-loader" hidden></div>
+          </button>
+          <div class="result-box" id="drift-result" hidden></div>
+        </div>
+
+      </div>
+
+      <!-- Pipeline Diagram -->
+      <div class="card pipeline-card">
+        <div class="card-header">
+          <div class="card-icon green">🔄</div>
+          <h2 class="card-title">ML Pipeline Stages</h2>
+        </div>
+        <div class="pipeline-flow" role="list" aria-label="ML pipeline stages">
+          <div class="pipeline-stage" role="listitem">
+            <div class="stage-icon">📥</div>
+            <div class="stage-name">Ingest</div>
+            <div class="stage-desc">Load CSV / synthetic</div>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-stage" role="listitem">
+            <div class="stage-icon">✅</div>
+            <div class="stage-name">Validate</div>
+            <div class="stage-desc">Schema + range checks</div>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-stage" role="listitem">
+            <div class="stage-icon">⚙️</div>
+            <div class="stage-name">Features</div>
+            <div class="stage-desc">Engineer + scale</div>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-stage" role="listitem">
+            <div class="stage-icon">🧠</div>
+            <div class="stage-name">Train</div>
+            <div class="stage-desc">GBT + calibration</div>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-stage" role="listitem">
+            <div class="stage-icon">📊</div>
+            <div class="stage-name">Evaluate</div>
+            <div class="stage-desc">AUC, F1, Accuracy</div>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-stage pipeline-stage-gate" role="listitem">
+            <div class="stage-icon">🔒</div>
+            <div class="stage-name">Gate</div>
+            <div class="stage-desc">AUC ≥ 0.75</div>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-stage pipeline-stage-serve" role="listitem">
+            <div class="stage-icon">🚀</div>
+            <div class="stage-name">Serve</div>
+            <div class="stage-desc">MLflow registry</div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ════ TAB: RAG Service ════════════════════════════════════════ -->
+    <section class="tab-panel" id="panel-rag" role="tabpanel" aria-labelledby="tab-rag" hidden>
+
+      <div class="hero-banner">
+        <h1 class="hero-title">RAG Service</h1>
+        <p class="hero-sub">8-stage pipeline: Load → Clean → Chunk → Embed → Index → Retrieve → Generate → Cite</p>
+      </div>
+
+      <div class="service-layout">
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon blue">🔨</div>
+            <h2 class="card-title">Build Index</h2>
+          </div>
+          <p class="card-desc">Build the FAISS vector index from complaint narratives. Uses SentenceTransformer
+            all-MiniLM-L6-v2 embeddings.</p>
+          <button class="btn-primary" id="build-index-btn">
+            <span class="btn-icon">🏗</span> Build FAISS Index
+            <div class="btn-loader" id="build-index-loader" hidden></div>
+          </button>
+          <div class="result-box" id="build-index-result" hidden></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon green">📡</div>
+            <h2 class="card-title">Index Status</h2>
+          </div>
+          <button class="btn-secondary" id="index-status-btn">
+            <span class="btn-icon">📡</span> Check Index Status
+          </button>
+          <div class="result-box" id="index-status-result" hidden></div>
+        </div>
+
+        <div class="card rag-query-card">
+          <div class="card-header">
+            <div class="card-icon purple">💬</div>
+            <h2 class="card-title">Query Complaints</h2>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="rag-question">Question</label>
+            <textarea class="field-input field-textarea" id="rag-question" rows="3"
+              placeholder="e.g. What are the most common credit card billing complaints?"></textarea>
+          </div>
+          <div class="form-grid mt-sm">
+            <div class="field-group">
+              <label class="field-label" for="rag-product">Product Filter</label>
+              <input class="field-input" type="text" id="rag-product" placeholder="Credit card" />
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="rag-issue">Issue Filter</label>
+              <input class="field-input" type="text" id="rag-issue" placeholder="Billing disputes" />
+            </div>
+          </div>
+          <button class="btn-primary mt-md" id="rag-query-btn">
+            <span class="btn-icon">🔍</span> Query
+            <div class="btn-loader" id="rag-query-loader" hidden></div>
+          </button>
+          <div class="rag-query-result" id="rag-direct-result" hidden>
+            <h4 class="result-label">Answer</h4>
+            <div class="answer-box small" id="rag-answer-direct"></div>
+            <h4 class="result-label mt-sm">Themes</h4>
+            <div class="themes-list small" id="rag-themes-direct"></div>
+            <h4 class="result-label mt-sm">Cited Record IDs</h4>
+            <div class="cited-ids small" id="rag-cited-direct"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RAG Pipeline Diagram -->
+      <div class="card pipeline-card">
+        <div class="card-header">
+          <div class="card-icon amber">🔄</div>
+          <h2 class="card-title">RAG Pipeline Stages</h2>
+        </div>
+        <div class="pipeline-flow" role="list" aria-label="RAG pipeline stages">
+          <div class="pipeline-stage" role="listitem">
+            <div class="stage-icon">📄</div>
+            <div class="stage-name">Load</div>
+            <div class="stage-desc">Complaints CSV</div>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-stage" role="listitem">
+            <div class="stage-icon">🧹</div>
+            <div class="stage-name">Clean</div>
+            <div class="stage-desc">Dedup + normalise</div>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-stage" role="listitem">
+            <div class="stage-icon">✂️</div>
+            <div class="stage-name">Chunk</div>
+            <div class="stage-desc">Sliding window</div>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-stage" role="listitem">
+            <div class="stage-icon">🔢</div>
+            <div class="stage-name">Embed</div>
+            <div class="stage-desc">MiniLM-L6-v2</div>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-stage" role="listitem">
+            <div class="stage-icon">🗃️</div>
+            <div class="stage-name">Index</div>
+            <div class="stage-desc">FAISS IndexFlatIP</div>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-stage" role="listitem">
+            <div class="stage-icon">🎯</div>
+            <div class="stage-name">Retrieve</div>
+            <div class="stage-desc">Top-K cosine</div>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-stage" role="listitem">
+            <div class="stage-icon">✍️</div>
+            <div class="stage-name">Generate</div>
+            <div class="stage-desc">LLM / Extractive</div>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-stage pipeline-stage-serve" role="listitem">
+            <div class="stage-icon">📋</div>
+            <div class="stage-name">Cite</div>
+            <div class="stage-desc">Record IDs</div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ════ TAB: Monitoring ═════════════════════════════════════════ -->
+    <section class="tab-panel" id="panel-monitor" role="tabpanel" aria-labelledby="tab-monitor" hidden>
+
+      <div class="hero-banner">
+        <h1 class="hero-title">System Monitoring</h1>
+        <p class="hero-sub">Real-time metrics, drift detection, and service health</p>
+      </div>
+
+      <!-- Metric Cards -->
+      <div class="metrics-grid" role="list" aria-label="System metrics">
+        <div class="metric-card" role="listitem">
+          <div class="metric-icon blue">🔮</div>
+          <div class="metric-value" id="metric-requests">—</div>
+          <div class="metric-label">Total Requests</div>
+          <div class="metric-trend up">↑ Live</div>
+        </div>
+        <div class="metric-card" role="listitem">
+          <div class="metric-icon green">⚡</div>
+          <div class="metric-value" id="metric-latency">—</div>
+          <div class="metric-label">Avg Latency</div>
+          <div class="metric-trend neutral">p50</div>
+        </div>
+        <div class="metric-card" role="listitem">
+          <div class="metric-icon purple">🧠</div>
+          <div class="metric-value" id="metric-model-ver">—</div>
+          <div class="metric-label">Model Version</div>
+          <div class="metric-trend neutral">MLflow</div>
+        </div>
+        <div class="metric-card" role="listitem">
+          <div class="metric-icon amber">🗃️</div>
+          <div class="metric-value" id="metric-index">—</div>
+          <div class="metric-label">FAISS Vectors</div>
+          <div class="metric-trend neutral">Index size</div>
+        </div>
+      </div>
+
+      <div class="monitor-grid">
+
+        <!-- Service Health -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon green">💚</div>
+            <h2 class="card-title">Service Health</h2>
+          </div>
+          <div class="services-list" id="services-list">
+            <div class="service-row">
+              <span class="service-name">FastAPI Backend</span>
+              <span class="service-status" id="svc-api">—</span>
+            </div>
+            <div class="service-row">
+              <span class="service-name">ML Model</span>
+              <span class="service-status" id="svc-ml">—</span>
+            </div>
+            <div class="service-row">
+              <span class="service-name">FAISS Index</span>
+              <span class="service-status" id="svc-rag">—</span>
+            </div>
+            <div class="service-row">
+              <span class="service-name">MLflow Tracking</span>
+              <span class="service-status" id="svc-mlflow">—</span>
+            </div>
+          </div>
+          <button class="btn-secondary mt-md" id="refresh-health-btn">
+            <span>🔄</span> Refresh
+          </button>
+        </div>
+
+        <!-- Prometheus Links -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon blue">📊</div>
+            <h2 class="card-title">Observability Stack</h2>
+          </div>
+          <div class="obs-links">
+            <a class="obs-link" href="http://localhost:9090" target="_blank" rel="noopener"
+              aria-label="Open Prometheus">
+              <div class="obs-icon">🔥</div>
+              <div>
+                <div class="obs-name">Prometheus</div>
+                <div class="obs-desc">localhost:9090 — Metrics scraping</div>
+              </div>
+              <span class="obs-arrow">↗</span>
+            </a>
+            <a class="obs-link" href="http://localhost:3001" target="_blank" rel="noopener" aria-label="Open Grafana">
+              <div class="obs-icon">📈</div>
+              <div>
+                <div class="obs-name">Grafana</div>
+                <div class="obs-desc">localhost:3001 — Dashboards</div>
+              </div>
+              <span class="obs-arrow">↗</span>
+            </a>
+            <a class="obs-link" href="http://localhost:5000" target="_blank" rel="noopener" aria-label="Open MLflow">
+              <div class="obs-icon">🧪</div>
+              <div>
+                <div class="obs-name">MLflow</div>
+                <div class="obs-desc">localhost:5000 — Experiment tracking</div>
+              </div>
+              <span class="obs-arrow">↗</span>
+            </a>
+            <a class="obs-link" href="http://localhost:8000/docs" target="_blank" rel="noopener"
+              aria-label="Open API docs">
+              <div class="obs-icon">📚</div>
+              <div>
+                <div class="obs-name">API Docs</div>
+                <div class="obs-desc">localhost:8000/docs — Swagger UI</div>
+              </div>
+              <span class="obs-arrow">↗</span>
+            </a>
+            <a class="obs-link" href="http://localhost:8000/metrics" target="_blank" rel="noopener"
+              aria-label="Open raw metrics">
+              <div class="obs-icon">⚙️</div>
+              <div>
+                <div class="obs-name">Raw Metrics</div>
+                <div class="obs-desc">localhost:8000/metrics — Prometheus endpoint</div>
+              </div>
+              <span class="obs-arrow">↗</span>
+            </a>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Architecture Overview -->
+      <div class="card arch-card">
+        <div class="card-header">
+          <div class="card-icon purple">🏛️</div>
+          <h2 class="card-title">System Architecture</h2>
+        </div>
+        <div class="arch-diagram" role="img" aria-label="System architecture diagram">
+          <div class="arch-layer" data-layer="Client">
+            <div class="arch-label">Client Layer</div>
+            <div class="arch-boxes">
+              <div class="arch-box client">Dashboard UI</div>
+            </div>
+          </div>
+          <div class="arch-connector">↓ HTTP/JSON</div>
+          <div class="arch-layer" data-layer="API">
+            <div class="arch-label">API Gateway</div>
+            <div class="arch-boxes">
+              <div class="arch-box api">FastAPI · /customer-intel · /ml/* · /rag/*</div>
+            </div>
+          </div>
+          <div class="arch-connector-split">
+            <div class="split-line left">↙ ML</div>
+            <div class="split-line right">RAG ↘</div>
+          </div>
+          <div class="arch-layer" data-layer="Services">
+            <div class="arch-label">AI Services</div>
+            <div class="arch-boxes two">
+              <div class="arch-box ml">ML Service<br /><small>GBT · Calibration · Feature Eng.</small></div>
+              <div class="arch-box rag">RAG Service<br /><small>FAISS · SentenceTransformers · LangChain</small></div>
+            </div>
+          </div>
+          <div class="arch-connector">↓ Artifacts / Index</div>
+          <div class="arch-layer" data-layer="MLOps">
+            <div class="arch-label">MLOps Spine</div>
+            <div class="arch-boxes three">
+              <div class="arch-box mlops">MLflow Registry</div>
+              <div class="arch-box mlops">EvidentlyAI Drift</div>
+              <div class="arch-box mlops">Prometheus + Grafana</div>
+            </div>
+          </div>
+          <div class="arch-connector">↑ CI/CD</div>
+          <div class="arch-layer" data-layer="CICD">
+            <div class="arch-label">CI/CD</div>
+            <div class="arch-boxes three">
+              <div class="arch-box cicd">GitHub Actions</div>
+              <div class="arch-box cicd">Docker / GHCR</div>
+              <div class="arch-box cicd">AUC Gate → Deploy</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ── Toast Notification ───────────────────────────────────────── -->
+  <div class="toast-container" aria-live="polite" aria-atomic="true">
+    <div class="toast" id="toast" role="alert" hidden>
+      <span class="toast-icon" id="toast-icon">✓</span>
+      <span class="toast-msg" id="toast-msg"></span>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
