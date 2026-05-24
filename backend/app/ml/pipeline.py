@@ -11,7 +11,7 @@ from loguru import logger
 
 from app.config import get_settings
 from app.ml.features import get_feature_engineer
-from app.ml.model import ConversionModel, get_model
+from app.ml.model import ConversionModel, get_model, reload_model
 from app.ml.registry import log_run, promote_model
 from app.ml.drift import get_drift_detector
 
@@ -70,10 +70,13 @@ def _generate_synthetic_data(n: int = 5000) -> pd.DataFrame:
 # ── Stage implementations ─────────────────────────────────────────────────────
 
 def stage_ingest(data_path: str | None) -> pd.DataFrame:
-    """Stage 1 — Ingest: load CSV or generate synthetic data."""
+    """Stage 1 — Ingest: load CSV/Parquet or generate synthetic data."""
     logger.info("▶ Stage 1: Ingest")
     if data_path and os.path.exists(data_path):
-        df = pd.read_csv(data_path)
+        if data_path.endswith(".parquet"):
+            df = pd.read_parquet(data_path)
+        else:
+            df = pd.read_csv(data_path)
         logger.info(f"  Loaded {len(df)} rows from {data_path}")
     else:
         logger.warning("  Data file not found — generating synthetic dataset.")
@@ -246,6 +249,7 @@ def stage_serve(model: ConversionModel):
     """Stage 7 — Serve: save model artifact to disk."""
     logger.info("▶ Stage 7: Serve")
     model.save()
+    reload_model(settings.model_path)
     logger.info(f"  Model artifact saved to {settings.model_path}")
 
 

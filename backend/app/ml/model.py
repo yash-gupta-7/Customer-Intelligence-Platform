@@ -79,11 +79,16 @@ class ConversionModel:
         version: str = "v1",
     ) -> dict:
         """Train with calibration. Returns evaluation metrics dict."""
+        if len(np.unique(y)) < 2:
+            raise ValueError("Training labels must contain at least two classes.")
+
         X_train, X_val, y_train, y_val = train_test_split(
             X, y, test_size=0.2, stratify=y, random_state=42
         )
         base = self._build_base()
-        calibrated = CalibratedClassifierCV(base, method="isotonic", cv=5)
+        cv_folds = min(5, int(np.bincount(y_train).min()))
+        cv_folds = max(cv_folds, 2)
+        calibrated = CalibratedClassifierCV(base, method="isotonic", cv=cv_folds)
         calibrated.fit(X_train, y_train)
 
         y_prob = calibrated.predict_proba(X_val)[:, 1]
@@ -165,4 +170,11 @@ def get_model(model_path: str = "models/conversion_model.pkl") -> ConversionMode
     global _model_instance
     if _model_instance is None:
         _model_instance = ConversionModel(model_path=model_path)
+    return _model_instance
+
+
+def reload_model(model_path: str = "models/conversion_model.pkl") -> ConversionModel:
+    """Reload model from disk after training or promotion."""
+    global _model_instance
+    _model_instance = ConversionModel(model_path=model_path)
     return _model_instance

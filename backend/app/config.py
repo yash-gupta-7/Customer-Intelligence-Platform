@@ -38,9 +38,16 @@ class Settings(BaseSettings):
     complaints_data_path: str = "data/complaints/complaints.csv"
     faiss_index_path: str = "models/faiss_index"
     embeddings_model: str = "all-MiniLM-L6-v2"
+    scaler_path: str = "models/scaler.pkl"
     rag_top_k: int = 5
     chunk_size: int = 512
     chunk_overlap: int = 64
+
+    # ── RAG Retrieval Thresholds ──────────────────────────────────────────────
+    rag_domain_threshold: int = 0
+    rag_lexical_overlap_threshold: float = 0.12
+    rag_similarity_threshold: float = 0.35
+    rag_weak_match_similarity: float = 0.55
 
     # ── LLM ───────────────────────────────────────────────────────────────────
     openai_api_key: str = ""
