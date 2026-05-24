@@ -16,6 +16,33 @@ settings = get_settings()
 
 # ── Theme Extraction ──────────────────────────────────────────────────────────
 
+COMPLAINT_DOMAIN_TERMS = {
+    "complaint", "complaints", "billing", "account", "credit", "loan", "mortgage",
+    "fraud", "dispute", "refund", "charge", "fee", "bank", "card", "payment",
+    "customer", "service", "unauthorized", "debt", "collection",
+}
+
+
+def _meaningful_words(text: str) -> set[str]:
+    return {w for w in re.sub(r"[^a-z ]", "", text.lower()).split() if len(w) > 3}
+
+
+def _question_domain_hits(question: str) -> int:
+    q = question.lower()
+    return sum(1 for term in COMPLAINT_DOMAIN_TERMS if term in q)
+
+
+def _max_lexical_overlap(question: str, chunks: list[dict]) -> float:
+    q_words = _meaningful_words(question)
+    if not q_words or not chunks:
+        return 0.0
+    overlaps = []
+    for chunk in chunks:
+        text_words = _meaningful_words(chunk.get("text", ""))
+        overlaps.append(len(q_words & text_words) / len(q_words))
+    return max(overlaps)
+
+
 THEME_KEYWORDS = {
     "Billing Issues": ["charge", "fee", "bill", "overcharge", "refund", "payment"],
     "Account Access": ["login", "locked", "password", "access", "account", "blocked"],
@@ -135,9 +162,22 @@ def generate_answer(question: str, retrieved_chunks: list[dict]) -> tuple[str, l
     Generate answer + extract themes + return cited record IDs.
     Returns: (answer, complaint_themes, confidence_score)
     """
-    max_sim = max([c.get("similarity_score", 0.0) for c in retrieved_chunks]) if retrieved_chunks else 0.0
+    refusal_msg = (
+        "I am sorry, but I could not find any relevant, high-confidence complaint records "
+        "matching your query. I must decline to answer questions outside our complaint database."
+    )
+
+    if not retrieved_chunks:
+        return refusal_msg, [], 0.0
+
+    max_sim = max(c.get("similarity_score", 0.0) for c in retrieved_chunks)
+    lexical_overlap = _max_lexical_overlap(question, retrieved_chunks)
+    domain_hits = _question_domain_hits(question)
+
+    # Reject off-topic questions that only weakly match complaint embeddings.
+    if domain_hits == 0 and lexical_overlap < 0.12 and max_sim < 0.55:
+        return refusal_msg, [], 0.0
     if max_sim < 0.35:
-        refusal_msg = "I am sorry, but I could not find any relevant, high-confidence complaint records matching your query. I must decline to answer questions outside our complaint database."
         return refusal_msg, [], 0.0
 
     texts = [c.get("text", "") for c in retrieved_chunks]

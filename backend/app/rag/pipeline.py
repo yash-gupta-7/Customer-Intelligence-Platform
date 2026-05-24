@@ -249,20 +249,24 @@ def run_rag_query(
 
     chunks = stage_retrieve(retriever, question, product, issue, date_filter, k)
     answer, themes, confidence = stage_generate(question, chunks)
-    cited_ids = stage_cite(chunks)
 
-    evidence = [
-        EvidenceRecord(
-            record_id=c["record_id"],
-            complaint_text=c["text"][:500],
-            product=c.get("product", ""),
-            issue=c.get("issue", ""),
-            date_received=c.get("date_received", ""),
-            similarity_score=c.get("similarity_score", 0.0),
-            chunk_index=c.get("chunk_index", 0),
-        )
-        for c in chunks
-    ]
+    if confidence == 0.0:
+        cited_ids: list[str] = []
+        evidence = []
+    else:
+        cited_ids = stage_cite(chunks)
+        evidence = [
+            EvidenceRecord(
+                record_id=c["record_id"],
+                complaint_text=c["text"][:500],
+                product=c.get("product", ""),
+                issue=c.get("issue", ""),
+                date_received=c.get("date_received", ""),
+                similarity_score=c.get("similarity_score", 0.0),
+                chunk_index=c.get("chunk_index", 0),
+            )
+            for c in chunks
+        ]
 
     return RAGResponse(
         answer=answer,
