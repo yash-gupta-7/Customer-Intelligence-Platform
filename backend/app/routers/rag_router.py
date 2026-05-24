@@ -1,10 +1,12 @@
 """
 routers/rag_router.py — RAG / complaint intelligence endpoints.
 """
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Request
 from loguru import logger
 
+from app.auth import require_api_key
 from app.config import get_settings, Settings
+from app.rate_limit import limiter
 from app.rag.pipeline import build_rag_index, run_rag_query
 from app.rag.retriever import get_retriever
 from app.schemas.rag_schema import ComplaintQuery, RAGResponse, IndexBuildResponse
@@ -13,8 +15,15 @@ from app.monitoring.metrics import record_retrieval, INDEX_SIZE
 router = APIRouter(prefix="/rag", tags=["RAG Service"])
 
 
-@router.post("/query", response_model=RAGResponse, summary="Query complaint intelligence")
+@router.post(
+    "/query",
+    response_model=RAGResponse,
+    summary="Query complaint intelligence",
+    dependencies=[Depends(require_api_key)],
+)
+@limiter.limit("15/minute")
 async def query_complaints(
+    request: Request,
     query: ComplaintQuery,
     settings: Settings = Depends(get_settings),
 ):

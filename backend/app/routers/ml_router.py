@@ -1,11 +1,13 @@
 """
 routers/ml_router.py — ML service endpoints.
 """
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, File, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, File, UploadFile, Request
 from loguru import logger
 from typing import List, Optional
 
+from app.auth import require_api_key
 from app.config import get_settings, Settings
+from app.rate_limit import limiter
 from app.ml.pipeline import run_ml_pipeline
 from app.ml.model import get_model
 from app.ml.features import get_feature_engineer
@@ -20,8 +22,15 @@ import pandas as pd
 router = APIRouter(prefix="/ml", tags=["ML Service"])
 
 
-@router.post("/predict", response_model=ConversionPrediction, summary="Predict conversion probability")
+@router.post(
+    "/predict",
+    response_model=ConversionPrediction,
+    summary="Predict conversion probability",
+    dependencies=[Depends(require_api_key)],
+)
+@limiter.limit("30/minute")
 async def predict_conversion(
+    request: Request,
     features: CustomerFeatures,
     settings: Settings = Depends(get_settings),
 ):
@@ -146,9 +155,14 @@ async def model_info(settings: Settings = Depends(get_settings)):
     }
 
 
-@router.post("/batch-score", summary="Batch score customer campaign conversions")
+@router.post(
+    "/batch-score",
+    summary="Batch score customer campaign conversions",
+    dependencies=[Depends(require_api_key)],
+)
+@limiter.limit("30/minute")
 async def batch_score(
-    features_list: Optional[List[CustomerFeatures]] = None,
+    request: Request,
     file: Optional[UploadFile] = File(None),
     settings: Settings = Depends(get_settings),
 ):
@@ -159,10 +173,7 @@ async def batch_score(
       - A CSV file upload containing customer features matching the schema
     """
     records = []
-    if features_list is not None:
-        records = [item.model_dump() for item in features_list]
-        logger.info(f"Received batch score request via JSON with {len(records)} records")
-    elif file is not None:
+    if file is not None:
         try:
             import io
             contents = await file.read()
@@ -173,10 +184,21 @@ async def batch_score(
             logger.error(f"Failed to parse CSV upload: {e}")
             raise HTTPException(status_code=400, detail=f"Failed to parse CSV file: {str(e)}")
     else:
-        raise HTTPException(
-            status_code=400,
-            detail="Missing payload. Must provide either features_list as JSON or a CSV file upload."
-        )
+        try:
+            body = await request.json()
+        except Exception:
+            body = None
+        if isinstance(body, list):
+            records = body
+            logger.info(f"Received batch score request via JSON array with {len(records)} records")
+        elif isinstance(body, dict) and body.get("features_list"):
+            records = body["features_list"]
+            logger.info(f"Received batch score request via JSON object with {len(records)} records")
+        if not records:
+            raise HTTPException(
+                status_code=400,
+                detail="Missing payload. Must provide either a JSON array of features or a CSV file upload.",
+            )
 
     if not records:
         return {

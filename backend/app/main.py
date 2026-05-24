@@ -5,14 +5,18 @@ import os
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request, Response
+from fastapi import Depends, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from loguru import logger
 from prometheus_fastapi_instrumentator import Instrumentator
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
-from app.config import get_settings
+from app.auth import require_api_key
+from app.config import Settings, get_settings
+from app.rate_limit import limiter
 from app.monitoring.metrics import setup_logging
 from app.routers import ml_router, rag_router, intel_router, monitor_router
 
@@ -76,6 +80,8 @@ app = FastAPI(
     redoc_url="/redoc",
     lifespan=lifespan,
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ── Middleware ────────────────────────────────────────────────────────────────
 
@@ -119,6 +125,61 @@ app.include_router(rag_router.router)
 app.include_router(intel_router.router)
 app.include_router(monitor_router.router)
 
+# ── Public API aliases (same handlers, shared auth + rate limits) ─────────────
+
+from typing import List, Optional
+
+from fastapi import File, UploadFile
+
+from app.routers.ml_router import predict_conversion, batch_score  # noqa: E402
+from app.routers.rag_router import query_complaints  # noqa: E402
+from app.schemas.ml_schema import CustomerFeatures, ConversionPrediction  # noqa: E402
+from app.schemas.rag_schema import ComplaintQuery, RAGResponse  # noqa: E402
+
+
+@app.post(
+    "/predict",
+    response_model=ConversionPrediction,
+    tags=["ML Service"],
+    dependencies=[Depends(require_api_key)],
+)
+@limiter.limit("30/minute")
+async def predict_alias(
+    request: Request,
+    features: CustomerFeatures,
+    settings: Settings = Depends(get_settings),
+):
+    return await predict_conversion(request, features, settings)
+
+
+@app.post(
+    "/batch-score",
+    tags=["ML Service"],
+    dependencies=[Depends(require_api_key)],
+)
+@limiter.limit("30/minute")
+async def batch_score_alias(
+    request: Request,
+    file: Optional[UploadFile] = File(None),
+    settings: Settings = Depends(get_settings),
+):
+    return await batch_score(request, file=file, settings=settings)
+
+
+@app.post(
+    "/ask-complaints",
+    response_model=RAGResponse,
+    tags=["RAG Service"],
+    dependencies=[Depends(require_api_key)],
+)
+@limiter.limit("15/minute")
+async def ask_complaints_alias(
+    request: Request,
+    query: ComplaintQuery,
+    settings: Settings = Depends(get_settings),
+):
+    return await query_complaints(request, query, settings)
+
 
 # ── Health & Info endpoints ───────────────────────────────────────────────────
 
@@ -137,6 +198,9 @@ async def root():
         "metrics": "/metrics",
         "endpoints": {
             "unified": "POST /customer-intel",
+            "predict": "POST /predict",
+            "ask_complaints": "POST /ask-complaints",
+            "batch_score": "POST /batch-score",
             "ml_predict": "POST /ml/predict",
             "ml_train": "POST /ml/train/sync",
             "ml_drift": "POST /ml/drift",

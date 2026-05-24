@@ -6,10 +6,12 @@ Fans out to ML service + RAG service in parallel, merges results.
 import asyncio
 import time
 import uuid
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from loguru import logger
 
+from app.auth import require_api_key
 from app.config import get_settings, Settings
+from app.rate_limit import limiter
 from app.ml.model import get_model
 from app.ml.features import get_feature_engineer
 from app.ml.drift import get_drift_detector
@@ -28,9 +30,12 @@ router = APIRouter(tags=["Customer Intelligence"])
     "/customer-intel",
     response_model=CustomerIntelResponse,
     summary="Unified customer intelligence — conversion + complaint analysis",
+    dependencies=[Depends(require_api_key)],
 )
+@limiter.limit("10/minute")
 async def customer_intel(
-    request: CustomerIntelRequest,
+    request: Request,
+    payload: CustomerIntelRequest,
     settings: Settings = Depends(get_settings),
 ):
     """
@@ -59,7 +64,7 @@ async def customer_intel(
     try:
         scaler_path = settings.model_path.replace("conversion_model.pkl", "scaler.pkl")
         fe = get_feature_engineer(scaler_path)
-        X, feature_names = fe.transform(request.customer_features.model_dump())
+        X, feature_names = fe.transform(payload.customer_features.model_dump())
         model = get_model(settings.model_path)
         prob, band, importance, ci = model.predict(X)
         model_version = model.version
@@ -89,18 +94,18 @@ async def customer_intel(
             # Build a contextual question from customer features
             question = (
                 f"What are the main complaints for customers with "
-                f"{request.customer_features.num_products} products, "
-                f"credit score {request.customer_features.credit_score:.0f}, "
-                f"and balance ${request.customer_features.account_balance:,.0f}?"
+                f"{payload.customer_features.num_products} products, "
+                f"credit score {payload.customer_features.credit_score:.0f}, "
+                f"and balance ${payload.customer_features.account_balance:,.0f}?"
             )
-            if request.issue:
-                question = f"{request.issue} issues: {question}"
+            if payload.issue:
+                question = f"{payload.issue} issues: {question}"
 
             rag_response = run_rag_query(
                 question=question,
-                product=request.product,
-                issue=request.issue,
-                date_filter=request.date_filter,
+                product=payload.product,
+                issue=payload.issue,
+                date_filter=payload.date_filter,
                 top_k=settings.rag_top_k,
             )
             rag_answer = rag_response.answer
