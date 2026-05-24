@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "baseName": {
+      "value": "cip"
+    },
+    "containerImage": {
+      "value": "REPLACE_ACR_LOGIN_SERVER/cip-api:latest"
+    },
+    "apiSecretKey": {
+      "value": "REPLACE_WITH_LONG_RANDOM_SECRET"
+    },
+    "allowedOrigins": {
+      "value": "https://REPLACE_STATIC_WEB_APP.azurestaticapps.net,http://localhost:8080"
+    },
+    "deployStaticWebApp": {
+      "value": true
+    }
+  }
+}

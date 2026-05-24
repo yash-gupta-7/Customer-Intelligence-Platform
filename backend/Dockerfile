@@ -37,15 +37,19 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --no-index --find-links=/wheels -r requirements.txt \
     && rm -rf /wheels
 
-# Copy application code
+# Copy application code and sample complaint data for RAG indexing
 COPY app/ ./app/
+COPY data/complaints/ ./data/complaints/
+COPY scripts/ ./scripts/
 
 # Create runtime directories
 RUN mkdir -p data/raw data/processed data/complaints \
     models reports/drift logs mlruns
 
 # Non-root user for security
-RUN useradd -m -u 1001 appuser && chown -R appuser:appuser /app
+RUN useradd -m -u 1001 appuser && \
+    chmod +x /app/scripts/docker-entrypoint.sh && \
+    chown -R appuser:appuser /app
 USER appuser
 
 # Health check
@@ -55,10 +59,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 EXPOSE 8000
 
 # Use exec form to receive signals properly
-CMD ["uvicorn", "app.main:app", \
-     "--host", "0.0.0.0", \
-     "--port", "8000", \
-     "--workers", "2", \
-     "--loop", "uvloop", \
-     "--log-level", "info", \
-     "--access-log"]
+ENV UVICORN_WORKERS=1
+ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]

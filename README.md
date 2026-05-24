@@ -231,6 +231,21 @@ flowchart LR
 
 ---
 
+## Deploy on Azure
+
+Full steps: **[azure/README.md](azure/README.md)**
+
+```bash
+az login
+export API_SECRET_KEY="$(openssl rand -hex 32)"
+chmod +x azure/deploy.sh azure/post-deploy.sh
+./azure/deploy.sh
+```
+
+CI/CD: connect the repo in Azure DevOps and run **[azure-pipelines.yml](azure-pipelines.yml)** (set `API_SECRET_KEY` as a secret pipeline variable).
+
+---
+
 ## Quick start
 
 ### Prerequisites

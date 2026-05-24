@@ -1,0 +1,151 @@
+# Azure DevOps — build, deploy, and bootstrap Customer Intelligence Platform on Azure
+# https://dev.azure.com/yashgupta0078/Customer
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - backend/**
+      - azure/**
+      - frontend/**
+      - azure-pipelines.yml
+
+# Set secret variables in Pipeline → Edit → Variables:
+#   API_SECRET_KEY (secret), AZURE_STATIC_WEB_APPS_API_TOKEN (secret, optional)
+variables:
+  resourceGroup: rg-cip-prod
+  location: eastus
+  baseName: cip
+  imageRepository: cip-api
+  imageTag: $(Build.BuildId)
+  azureServiceConnection: azure-cip-subscription
+  ALLOWED_ORIGINS: '*'
+
+stages:
+  - stage: Build
+    displayName: Build API image
+    jobs:
+      - job: ACRBuild
+        displayName: ACR cloud build
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - checkout: self
+
+          - task: AzureCLI@2
+            displayName: Ensure ACR and build image
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                az group create --name $(resourceGroup) --location $(location) --output none
+                DEPLOY_OUT=$(az deployment group create \
+                  --resource-group $(resourceGroup) \
+                  --template-file azure/main.bicep \
+                  --parameters baseName=$(baseName) \
+                    containerImage=mcr.microsoft.com/k8se/quickstart:latest \
+                    apiSecretKey=$(API_SECRET_KEY) \
+                    allowedOrigins='$(ALLOWED_ORIGINS)' \
+                    deployStaticWebApp=true \
+                    deployApi=false \
+                  --query properties.outputs -o json)
+                ACR_NAME=$(echo "$DEPLOY_OUT" | python3 -c "import sys,json; print(json.load(sys.stdin)['acrName']['value'])")
+                az acr build \
+                  --registry "$ACR_NAME" \
+                  --image $(imageRepository):$(imageTag) \
+                  --image $(imageRepository):latest \
+                  --file backend/Dockerfile \
+                  backend
+            env:
+              API_SECRET_KEY: $(API_SECRET_KEY)
+              ALLOWED_ORIGINS: $(ALLOWED_ORIGINS)
+
+  - stage: Deploy
+    displayName: Deploy Container App
+    dependsOn: Build
+    jobs:
+      - job: DeployApi
+        displayName: Deploy API
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - checkout: self
+
+          - task: AzureCLI@2
+            displayName: Deploy Container App
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                ACR_NAME=$(az acr list -g $(resourceGroup) --query "[?contains(name, 'cipacr')].name | [0]" -o tsv)
+                ACR_LOGIN=$(az acr show --name "$ACR_NAME" --query loginServer -o tsv)
+                IMAGE="${ACR_LOGIN}/$(imageRepository):$(imageTag)"
+                az deployment group create \
+                  --resource-group $(resourceGroup) \
+                  --template-file azure/main.bicep \
+                  --parameters baseName=$(baseName) \
+                    containerImage="$IMAGE" \
+                    apiSecretKey="$(API_SECRET_KEY)" \
+                    allowedOrigins='$(ALLOWED_ORIGINS)' \
+                    deployStaticWebApp=true \
+                    deployApi=true
+                FQDN=$(az containerapp show --name $(baseName)-api --resource-group $(resourceGroup) --query properties.configuration.ingress.fqdn -o tsv)
+                echo "##vso[task.setvariable variable=apiUrl;isOutput=true]https://${FQDN}"
+            env:
+              API_SECRET_KEY: $(API_SECRET_KEY)
+              ALLOWED_ORIGINS: $(ALLOWED_ORIGINS)
+            name: DeployContainerApp
+
+  - stage: Bootstrap
+    displayName: Bootstrap ML and RAG
+    dependsOn: Deploy
+    jobs:
+      - job: PostDeploy
+        displayName: Train model and build index
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - checkout: self
+
+          - task: AzureCLI@2
+            displayName: Resolve API URL
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                FQDN=$(az containerapp show --name $(baseName)-api --resource-group $(resourceGroup) --query properties.configuration.ingress.fqdn -o tsv)
+                echo "##vso[task.setvariable variable=apiUrl]https://${FQDN}"
+
+          - bash: |
+              chmod +x azure/post-deploy.sh
+              azure/post-deploy.sh "$(apiUrl)" "$(API_SECRET_KEY)"
+            displayName: Post-deploy bootstrap
+            env:
+              API_SECRET_KEY: $(API_SECRET_KEY)
+
+  - stage: Frontend
+    displayName: Deploy Static Web App
+    dependsOn: Deploy
+    condition: and(succeeded(), ne(variables['AZURE_STATIC_WEB_APPS_API_TOKEN'], ''))
+    jobs:
+      - job: DeploySWA
+        displayName: Deploy frontend
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - checkout: self
+
+          - task: AzureStaticWebApp@0
+            displayName: Upload static site
+            inputs:
+              app_location: frontend
+              output_location: frontend
+              skip_app_build: true
+              azure_static_web_apps_api_token: $(AZURE_STATIC_WEB_APPS_API_TOKEN)
