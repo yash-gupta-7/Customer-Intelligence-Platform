@@ -1,0 +1,9 @@
+[build]
+  publish = "frontend"
+  command = "echo 'Static frontend — no build step'"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://cip-api.onrender.com/:splat"
+  status = 200
+  force = true
