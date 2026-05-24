@@ -9,8 +9,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from fastapi.testclient import TestClient
 from app.main import app
+from app.config import get_settings
 
 client = TestClient(app)
+API_HEADERS = {"X-API-Key": get_settings().api_secret_key}
 
 
 # ── Health & Root ─────────────────────────────────────────────────────────────
@@ -65,7 +67,7 @@ class TestMLEndpoints:
     def test_predict_returns_probability(self):
         # Ensure model is trained first
         client.post("/ml/train/sync", json={"retrain": False, "force_promote": True})
-        response = client.post("/ml/predict", json=SAMPLE_FEATURES)
+        response = client.post("/ml/predict", json=SAMPLE_FEATURES, headers=API_HEADERS)
         assert response.status_code == 200
         data = response.json()
         assert 0.0 <= data["conversion_probability"] <= 1.0
@@ -74,7 +76,7 @@ class TestMLEndpoints:
 
     def test_predict_validates_input(self):
         bad_payload = {**SAMPLE_FEATURES, "age": 10}  # age < 18
-        response = client.post("/ml/predict", json=bad_payload)
+        response = client.post("/ml/predict", json=bad_payload, headers=API_HEADERS)
         assert response.status_code == 422
 
     def test_model_info_returns_version(self):
@@ -113,7 +115,7 @@ class TestRAGEndpoints:
             "issue": None,
             "date_filter": None,
         }
-        response = client.post("/rag/query", json=payload)
+        response = client.post("/rag/query", json=payload, headers=API_HEADERS)
         assert response.status_code == 200
         data = response.json()
         assert len(data["answer"]) > 0
@@ -128,7 +130,7 @@ class TestRAGEndpoints:
             "issue": "Billing",
             "date_filter": "2022-01-01",
         }
-        response = client.post("/rag/query", json=payload)
+        response = client.post("/rag/query", json=payload, headers=API_HEADERS)
         assert response.status_code == 200
 
 
@@ -147,7 +149,7 @@ class TestIntelEndpoint:
             "issue": "Billing disputes",
             "date_filter": "2021-01-01",
         }
-        response = client.post("/customer-intel", json=payload)
+        response = client.post("/customer-intel", json=payload, headers=API_HEADERS)
         assert response.status_code == 200
         data = response.json()
 
@@ -178,7 +180,7 @@ class TestIntelEndpoint:
             "issue": None,
             "date_filter": None,
         }
-        response = client.post("/customer-intel", json=bad_payload)
+        response = client.post("/customer-intel", json=bad_payload, headers=API_HEADERS)
         assert response.status_code == 422
 
     def test_monitoring_export_succeeds(self):
@@ -192,7 +194,7 @@ class TestIntelEndpoint:
     def test_batch_score_json_succeeds(self):
         client.post("/ml/train/sync", json={"retrain": False, "force_promote": True})
         payload = [SAMPLE_FEATURES, SAMPLE_FEATURES]
-        response = client.post("/ml/batch-score", json=payload)
+        response = client.post("/ml/batch-score", json=payload, headers=API_HEADERS)
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "success"
@@ -211,7 +213,7 @@ class TestIntelEndpoint:
         csv_bytes = csv_buffer.getvalue().encode("utf-8")
         
         files = {"file": ("test.csv", csv_bytes, "text/csv")}
-        response = client.post("/ml/batch-score", files=files)
+        response = client.post("/ml/batch-score", files=files, headers=API_HEADERS)
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "success"
@@ -226,7 +228,7 @@ class TestIntelEndpoint:
             "issue": None,
             "date_filter": None,
         }
-        response = client.post("/rag/query", json=payload)
+        response = client.post("/rag/query", json=payload, headers=API_HEADERS)
         assert response.status_code == 200
         data = response.json()
         assert "decline to answer" in data["answer"].lower() or "could not find any relevant" in data["answer"].lower() or "sorry" in data["answer"].lower()
